@@ -98,9 +98,9 @@ class DashboardController extends Controller
             return [
                 'labels' => $records->pluck('week')->map(function($week) {
                     // Convert YEARWEEK format (YYYYWW) to date
-                    $year = substr($week, 0, 4);
-                    $weekNum = substr($week, 4);
-                    $date = \Carbon\Carbon::now()->setISODate($year, $weekNum)->startOfWeek();
+                    $year = (int)substr($week, 0, 4);
+                    $weekNum = (int)substr($week, 4);
+                    $date = \Carbon\Carbon::create($year, 1, 1)->addWeeks($weekNum - 1)->startOfWeek();
                     return 'Week of ' . $date->format('M d');
                 }),
                 'male' => $records->pluck('male_count'),
