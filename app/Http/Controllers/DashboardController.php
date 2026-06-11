@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FootTrafficRecord;
+use App\Models\NvrRecording;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -13,12 +13,21 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $availableDates = FootTrafficRecord::selectRaw('DISTINCT date')
-            ->orderBy('date', 'desc')
-            ->pluck('date');
+        // Get oldest date with actual data (first data available)
+        $firstAvailableDate = NvrRecording::select('recording_date')
+            ->orderBy('recording_date', 'asc')
+            ->pluck('recording_date')
+            ->first();
+
+        // Get all available dates
+        $availableDates = NvrRecording::select('recording_date')
+            ->distinct()
+            ->orderBy('recording_date', 'desc')
+            ->pluck('recording_date');
 
         return view('dashboard', [
             'availableDates' => $availableDates,
+            'defaultDate' => $firstAvailableDate ? $firstAvailableDate->format('Y-m-d') : now()->format('Y-m-d'),
         ]);
     }
 

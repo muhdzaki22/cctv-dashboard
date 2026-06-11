@@ -16,15 +16,20 @@
                 <!-- Date Range Selector -->
                 <div class="flex flex-wrap gap-3 items-center">
                     <div>
-                        <label class="text-sm text-blue-100 block mb-1">Select Date</label>
-                        <input type="date" x-model="selectedDate" @change="onDateChange"
+                        <label class="text-sm text-blue-100 block mb-1">Start Date</label>
+                        <input type="date" x-model="selectedDate" @change="onStartDateChange"
                             class="px-3 py-2 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-300 focus:outline-none">
                     </div>
                     <div>
                         <label class="text-sm text-blue-100 block mb-1">End Date</label>
-                        <input type="date" x-model="endDate"
+                        <input type="date" x-model="endDate" @change="onEndDateChange"
                             class="px-3 py-2 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-300 focus:outline-none">
                     </div>
+                    <button @click="fetchNvrData" :disabled="nvrLoading"
+                        class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 rounded-lg transition mt-5">
+                        <span x-show="!nvrLoading">🔄 Fetch NVR Data</span>
+                        <span x-show="nvrLoading">Fetching...</span>
+                    </button>
                     <button @click="refreshAll" :disabled="loading"
                         class="px-4 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg transition mt-5">
                         <span x-show="!loading">Refresh</span>
@@ -37,17 +42,26 @@
 
     <main class="container mx-auto px-4 py-8">
         <!-- Peak Hour Card -->
-        <div class="mb-8" x-show="peakHour">
+        <div class="mb-8">
             <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl shadow-xl p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-emerald-100 text-sm uppercase tracking-wide">Peak Hour for <span x-text="formatDate(selectedDate)"></span></p>
-                        <p class="text-5xl font-bold mt-2" x-text="peakHour?.hour || '--:00'"></p>
-                        <p class="text-emerald-100 mt-1">
-                            <span x-text="peakHour?.total_count || 0"></span> visitors
-                            (<span x-text="peakHour?.male_count || 0"></span> male,
-                            <span x-text="peakHour?.female_count || 0"></span> female)
-                        </p>
+                        <template x-if="peakHour">
+                            <div>
+                                <p class="text-5xl font-bold mt-2" x-text="peakHour.hour"></p>
+                                <p class="text-emerald-100 mt-1">
+                                    <span x-text="peakHour.total_count"></span> visits
+                                    (<span x-text="peakHour.total_duration"></span> seconds)
+                                </p>
+                            </div>
+                        </template>
+                        <template x-if="!peakHour">
+                            <div>
+                                <p class="text-3xl font-bold mt-2">No data available</p>
+                                <p class="text-emerald-100 mt-1">Select a date with recordings to see peak hour</p>
+                            </div>
+                        </template>
                     </div>
                     <div class="text-6xl opacity-20">🚶</div>
                 </div>
@@ -59,28 +73,30 @@
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm">Today's Visitors</p>
+                        <p class="text-gray-500 text-sm">Today's Visits</p>
                         <p class="text-3xl font-bold text-gray-800" x-text="todayStats.total">0</p>
                     </div>
                     <div class="text-3xl opacity-20">👥</div>
                 </div>
             </div>
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Total Duration</p>
+                        <p class="text-3xl font-bold text-gray-800" x-text="Math.round(todayStats.total_duration / 60)">0</p>
+                        <p class="text-xs text-gray-400">minutes</p>
+                    </div>
+                    <div class="text-3xl opacity-20">⏱️</div>
+                </div>
+            </div>
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm">Male Visitors</p>
-                        <p class="text-3xl font-bold text-gray-800" x-text="todayStats.male">0</p>
+                        <p class="text-gray-500 text-sm">Avg Visit Duration</p>
+                        <p class="text-3xl font-bold text-gray-800" x-text="todayStats.avg_duration">0</p>
+                        <p class="text-xs text-gray-400">seconds</p>
                     </div>
-                    <div class="text-3xl opacity-20">👨</div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-pink-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Female Visitors</p>
-                        <p class="text-3xl font-bold text-gray-800" x-text="todayStats.female">0</p>
-                    </div>
-                    <div class="text-3xl opacity-20">👩</div>
+                    <div class="text-3xl opacity-20">📊</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-amber-500">
@@ -107,10 +123,10 @@
                 </div>
             </div>
 
-            <!-- Gender Distribution -->
+            <!-- Duration Categories -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Gender Distribution</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Visit Duration Categories</h2>
                     <span class="text-sm text-gray-500" x-text="formatDate(selectedDate)"></span>
                 </div>
                 <div class="relative h-80">
@@ -155,11 +171,14 @@
 <script>
 function dashboard() {
     return {
-        selectedDate: '{{ $availableDates->first()?->format('Y-m-d') ?? now()->format('Y-m-d') }}',
+        selectedDate: '{{ $defaultDate }}',
         endDate: '',
         period: 30,
         loading: false,
+        nvrLoading: false,
         peakHour: null,
+        isLoadingDaily: false,
+        dailyUpdateTimer: null,
         todayStats: { male: 0, female: 0, total: 0 },
         weeklyTotal: 0,
 
@@ -170,9 +189,13 @@ function dashboard() {
         weeklyChart: null,
 
         init() {
-            this.endDate = this.selectedDate;
+            console.log('Dashboard initialized with date:', this.selectedDate);
+            // Initialize endDate to current date
+            const today = new Date();
+            this.endDate = today.toISOString().split('T')[0];
             // Wait for DOM to be fully loaded before initializing charts
             this.$nextTick(() => {
+                console.log('DOM loaded, refreshing all data');
                 this.refreshAll();
             });
         },
@@ -183,32 +206,111 @@ function dashboard() {
             return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         },
 
-        async onDateChange() {
-            this.endDate = this.selectedDate;
-            await this.loadHourlyData();
-            await this.loadPeakHour();
-            await this.loadGenderStats();
+        async onStartDateChange() {
+            console.log('Start date changed to:', this.selectedDate);
+            // Auto-refresh data that depends on start date
+            await Promise.all([
+                this.loadHourlyData(),
+                this.loadPeakHour(),
+                this.loadGenderStats(),
+                this.loadSummaryStats(), // Load summary stats
+                this.loadDailyData(), // This will use the current period
+            ]);
+        },
+
+        async onEndDateChange() {
+            console.log('End date changed to:', this.endDate);
+            // Auto-refresh data that depends on date range
+            await this.loadDailyData();
         },
 
         setPeriod(days) {
+            console.log('setPeriod called with', days, 'days');
             this.period = days;
             const end = new Date(this.selectedDate);
             const start = new Date(end);
             start.setDate(start.getDate() - days);
             this.endDate = end.toISOString().split('T')[0];
-            this.loadDailyData(start.toISOString().split('T')[0], this.endDate);
+
+            // Clear any pending daily data update
+            if (this.dailyUpdateTimer) {
+                clearTimeout(this.dailyUpdateTimer);
+            }
+
+            // Debounce the daily data update to prevent rapid chart updates
+            this.dailyUpdateTimer = setTimeout(() => {
+                console.log('Executing debounced daily data update');
+                this.loadDailyData(start.toISOString().split('T')[0], this.endDate);
+            }, 300);
+        },
+
+        async fetchNvrData() {
+            this.nvrLoading = true;
+            try {
+                const response = await fetch('/api/recordings/fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ date: this.selectedDate })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to fetch NVR data (${response.status}): ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Fetch result:', result);
+
+                if (result.error) {
+                    alert(result.error);
+                } else {
+                    let message = `Successfully processed ${result.total_visits} visits from ${result.total_recordings} NVR recordings!`;
+                    if (result.authenticated) {
+                        message += ' (Auto-authenticated)';
+                    }
+                    alert(message);
+                    // Refresh the charts with new data
+                    this.refreshAll();
+                }
+            } catch (error) {
+                console.error('Error fetching NVR data:', error);
+                alert('Failed to fetch NVR data: ' + error.message);
+            } finally {
+                this.nvrLoading = false;
+            }
         },
 
         async refreshAll() {
+            console.log('refreshAll called, loading all data');
+            console.log('Checking canvas elements:');
+            console.log('hourlyChart exists:', !!document.getElementById('hourlyChart'));
+            console.log('genderChart exists:', !!document.getElementById('genderChart'));
+            console.log('dailyChart exists:', !!document.getElementById('dailyChart'));
+            console.log('weeklyChart exists:', !!document.getElementById('weeklyChart'));
+
             this.loading = true;
             try {
+                // Wait for DOM to be ready
+                await this.$nextTick();
+                // Add additional delay to ensure DOM is fully rendered
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 await Promise.all([
                     this.loadHourlyData(),
-                    this.loadPeakHour(),
-                    this.loadGenderStats(),
                     this.loadDailyData(),
                     this.loadWeeklyData(),
+                    this.loadPeakHour(),
+                    this.loadGenderStats(),
+                    this.loadSummaryStats(),
                 ]);
+                console.log('All data loaded successfully');
             } finally {
                 this.loading = false;
             }
@@ -216,8 +318,9 @@ function dashboard() {
 
         async loadHourlyData() {
             try {
-                const response = await fetch(`/api/dashboard/hourly?date=${this.selectedDate}`);
+                const response = await fetch(`/api/recordings/hourly?date=${this.selectedDate}`);
                 const data = await response.json();
+                console.log('Hourly data loaded:', data);
                 this.updateHourlyChart(data);
             } catch (error) {
                 console.error('Error loading hourly data:', error);
@@ -226,40 +329,75 @@ function dashboard() {
 
         async loadPeakHour() {
             try {
-                const response = await fetch(`/api/dashboard/peak-hour?date=${this.selectedDate}`);
+                const response = await fetch(`/api/recordings/peak-hour?date=${this.selectedDate}`);
                 if (response.ok) {
                     this.peakHour = await response.json();
+                    console.log('Peak hour loaded:', this.peakHour);
+                } else {
+                    console.log('Peak hour response not ok:', response.status);
+                    this.peakHour = null;
                 }
             } catch (error) {
                 console.error('Error loading peak hour:', error);
+                this.peakHour = null;
             }
         },
 
         async loadGenderStats() {
             try {
-                const response = await fetch(`/api/dashboard/gender-stats?start_date=${this.selectedDate}&end_date=${this.endDate}`);
+                const response = await fetch(`/api/recordings/duration-categories?start_date=${this.selectedDate}&end_date=${this.endDate}`);
                 const data = await response.json();
-                this.todayStats = data;
+                console.log('Duration categories loaded:', data);
                 this.updateGenderChart(data);
             } catch (error) {
-                console.error('Error loading gender stats:', error);
+                console.error('Error loading duration categories:', error);
+            }
+        },
+
+        async loadSummaryStats() {
+            try {
+                const response = await fetch(`/api/recordings/stats?start_date=${this.selectedDate}&end_date=${this.selectedDate}`);
+                const data = await response.json();
+                console.log('Summary stats loaded:', data);
+                this.todayStats = {
+                    total: data.total || 0,
+                    total_duration: data.total_duration || 0,
+                    avg_duration: data.avg_duration || 0,
+                    median_duration: data.median_duration || 0,
+                    male: data.male || 0,
+                    female: data.female || 0
+                };
+            } catch (error) {
+                console.error('Error loading summary stats:', error);
             }
         },
 
         async loadDailyData(startDate, endDate) {
+            // Prevent concurrent updates
+            if (this.isLoadingDaily) {
+                console.log('Daily data already loading, skipping');
+                return;
+            }
+
+            this.isLoadingDaily = true;
+
             if (!startDate) {
-                const end = new Date(this.selectedDate);
+                const end = new Date(this.endDate || this.selectedDate);
                 const start = new Date(end);
                 start.setDate(start.getDate() - this.period);
                 startDate = start.toISOString().split('T')[0];
-                endDate = this.selectedDate;
+                endDate = (this.endDate || this.selectedDate);
             }
+            console.log('Loading daily data from', startDate, 'to', endDate);
             try {
-                const response = await fetch(`/api/dashboard/daily?start_date=${startDate}&end_date=${endDate}`);
+                const response = await fetch(`/api/recordings/daily?start_date=${startDate}&end_date=${endDate}`);
                 const data = await response.json();
+                console.log('Daily data loaded:', data);
                 this.updateDailyChart(data);
             } catch (error) {
                 console.error('Error loading daily data:', error);
+            } finally {
+                this.isLoadingDaily = false;
             }
         },
 
@@ -267,10 +405,12 @@ function dashboard() {
             const end = new Date();
             const start = new Date();
             start.setDate(start.getDate() - 90);
+            console.log('Loading weekly data from', start.toISOString().split('T')[0], 'to', end.toISOString().split('T')[0]);
             try {
-                const response = await fetch(`/api/dashboard/weekly?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`);
+                const response = await fetch(`/api/recordings/weekly?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`);
                 const data = await response.json();
-                this.weeklyTotal = data.total?.reduce((a, b) => a + b, 0) || 0;
+                console.log('Weekly data loaded:', data);
+                this.weeklyTotal = data.recording_count?.reduce((a, b) => a + b, 0) || 0;
                 this.updateWeeklyChart(data);
             } catch (error) {
                 console.error('Error loading weekly data:', error);
@@ -278,17 +418,58 @@ function dashboard() {
         },
 
         updateHourlyChart(data) {
+            console.log('updateHourlyChart called with data:', data);
             const canvas = document.getElementById('hourlyChart');
-            if (!canvas) return;
+            if (!canvas) {
+                console.error('Hourly chart canvas not found');
+                return;
+            }
             const ctx = canvas.getContext('2d');
             if (this.hourlyChart) this.hourlyChart.destroy();
+
+            // Handle empty data
+            if (!data.labels || data.labels.length === 0) {
+                console.log('Hourly chart has no data, showing empty state');
+                this.hourlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: 'Total Visits',
+                            data: [0],
+                            backgroundColor: 'rgba(156, 163, 175, 0.5)',
+                            borderColor: 'rgb(156, 163, 175)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: 'No data available for this date',
+                                color: '#6b7280'
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+                return;
+            }
+
+            console.log('Creating hourly chart with', data.labels.length, 'data points');
             this.hourlyChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.labels,
                     datasets: [{
-                        label: 'Total Visitors',
-                        data: data.total,
+                        label: 'Total Visits',
+                        data: data.recording_count,
                         backgroundColor: 'rgba(59, 130, 246, 0.7)',
                         borderColor: 'rgb(59, 130, 246)',
                         borderWidth: 1,
@@ -309,23 +490,72 @@ function dashboard() {
         },
 
         updateGenderChart(data) {
+            console.log('updateDurationChart called with data:', data);
             const canvas = document.getElementById('genderChart');
-            if (!canvas) return;
+            if (!canvas) {
+                console.error('Duration chart canvas not found');
+                return;
+            }
             const ctx = canvas.getContext('2d');
-            if (this.genderChart) this.genderChart.destroy();
+            if (this.genderChart) {
+                try {
+                    this.genderChart.destroy();
+                    this.genderChart = null;
+                } catch (error) {
+                    console.error('Error destroying duration chart:', error);
+                    this.genderChart = null;
+                }
+            }
+
+            // Handle empty data
+            if (!data.data || data.data.every(val => val === 0)) {
+                console.log('Duration chart has no data, showing empty state');
+                this.genderChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            data: [1],
+                            backgroundColor: ['rgba(156, 163, 175, 0.5)'],
+                            borderColor: ['rgb(156, 163, 175)'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20 }
+                            },
+                            title: {
+                                display: true,
+                                text: 'No data available for this date',
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            console.log('Creating duration chart with categories:', data.labels);
             this.genderChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Male', 'Female'],
+                    labels: data.labels,
                     datasets: [{
-                        data: [data.male, data.female],
+                        data: data.data,
                         backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(236, 72, 153, 0.8)'
+                            'rgba(34, 197, 94, 0.8)',   // Green for short visits
+                            'rgba(234, 179, 8, 0.8)',  // Yellow for medium visits
+                            'rgba(239, 68, 68, 0.8)'    // Red for long visits
                         ],
                         borderColor: [
-                            'rgb(59, 130, 246)',
-                            'rgb(236, 72, 153)'
+                            'rgb(34, 197, 94)',
+                            'rgb(234, 179, 8)',
+                            'rgb(239, 68, 68)'
                         ],
                         borderWidth: 2
                     }]
@@ -337,69 +567,193 @@ function dashboard() {
                         legend: {
                             position: 'bottom',
                             labels: { padding: 20 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
                         }
                     }
                 }
             });
+            console.log('Duration chart created successfully');
         },
 
         updateDailyChart(data) {
+            console.log('updateDailyChart called with data:', data);
             const canvas = document.getElementById('dailyChart');
-            if (!canvas) return;
+            if (!canvas) {
+                console.error('Daily chart canvas not found!');
+                return;
+            }
+
+            console.log('Canvas element found:', canvas);
             const ctx = canvas.getContext('2d');
-            if (this.dailyChart) this.dailyChart.destroy();
-            this.dailyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Total Visitors',
-                        data: data.total,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
+            if (!ctx) {
+                console.error('Failed to get 2D context from canvas!');
+                return;
+            }
+
+            if (this.dailyChart) {
+                console.log('Destroying existing daily chart');
+                try {
+                    this.dailyChart.destroy();
+                    this.dailyChart = null;
+                } catch (error) {
+                    console.error('Error destroying daily chart:', error);
+                    this.dailyChart = null;
                 }
-            });
+            }
+
+            // Handle empty data
+            if (!data.labels || data.labels.length === 0) {
+                console.log('Daily chart has no data, showing empty state');
+                try {
+                    this.dailyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['No Data'],
+                            datasets: [{
+                                label: 'Total Visitors',
+                                data: [0],
+                                borderColor: 'rgb(156, 163, 175)',
+                                backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: 'rgb(156, 163, 175)',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                title: {
+                                    display: true,
+                                    text: 'No data available for this date range',
+                                    color: '#6b7280'
+                                }
+                            },
+                            scales: {
+                                y: { beginAtZero: true }
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            }
+                        }
+                    });
+                    console.log('Empty daily chart created successfully');
+                } catch (error) {
+                    console.error('Error creating empty daily chart:', error);
+                }
+                return;
+            }
+
+            console.log('Creating daily chart with', data.labels.length, 'data points');
+            try {
+                this.dailyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Total Visitors',
+                            data: data.total,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+                console.log('Daily chart created successfully');
+            } catch (error) {
+                console.error('Error creating daily chart:', error);
+            }
         },
 
         updateWeeklyChart(data) {
+            console.log('updateWeeklyChart called with data:', data);
             const canvas = document.getElementById('weeklyChart');
-            if (!canvas) return;
+            if (!canvas) {
+                console.error('Weekly chart canvas not found!');
+                return;
+            }
             const ctx = canvas.getContext('2d');
             if (this.weeklyChart) this.weeklyChart.destroy();
+
+            // Handle empty data
+            if (!data.labels || data.labels.length === 0) {
+                console.log('Weekly chart has no data, showing empty state');
+                this.weeklyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: 'Total Visits',
+                            data: [0],
+                            backgroundColor: 'rgba(156, 163, 175, 0.7)',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { padding: 20 }
+                            },
+                            title: {
+                                display: true,
+                                text: 'No data available for this date range',
+                                color: '#6b7280'
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+                return;
+            }
+
+            console.log('Creating weekly chart with', data.labels.length, 'data points');
             this.weeklyChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.labels,
                     datasets: [{
-                        label: 'Male',
-                        data: data.male,
+                        label: 'Total Visits',
+                        data: data.recording_count || data.male,
                         backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                        borderRadius: 4
-                    }, {
-                        label: 'Female',
-                        data: data.female,
-                        backgroundColor: 'rgba(236, 72, 153, 0.7)',
                         borderRadius: 4
                     }]
                 },
@@ -413,8 +767,7 @@ function dashboard() {
                         }
                     },
                     scales: {
-                        y: { beginAtZero: true },
-                        x: { stacked: true }
+                        y: { beginAtZero: true }
                     }
                 }
             });
