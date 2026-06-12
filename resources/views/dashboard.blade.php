@@ -179,6 +179,7 @@ function dashboard() {
         peakHour: null,
         isLoadingDaily: false,
         dailyUpdateTimer: null,
+        isUpdatingDailyChart: false,
         todayStats: { male: 0, female: 0, total: 0 },
         weeklyTotal: 0,
 
@@ -230,7 +231,7 @@ function dashboard() {
             const end = new Date(this.selectedDate);
             const start = new Date(end);
             start.setDate(start.getDate() - days);
-            this.endDate = end.toISOString().split('T')[0];
+            // Don't change endDate - only change the start date based on period
 
             // Clear any pending daily data update
             if (this.dailyUpdateTimer) {
@@ -241,7 +242,7 @@ function dashboard() {
             this.dailyUpdateTimer = setTimeout(() => {
                 console.log('Executing debounced daily data update');
                 this.loadDailyData(start.toISOString().split('T')[0], this.endDate);
-            }, 300);
+            }, 500); // Increased from 300ms to 500ms
         },
 
         async fetchNvrData() {
@@ -587,34 +588,45 @@ function dashboard() {
 
         updateDailyChart(data) {
             console.log('updateDailyChart called with data:', data);
-            const canvas = document.getElementById('dailyChart');
-            if (!canvas) {
-                console.error('Daily chart canvas not found!');
+
+            // Prevent concurrent chart updates
+            if (this.isUpdatingDailyChart) {
+                console.log('Daily chart already updating, skipping');
                 return;
             }
 
-            console.log('Canvas element found:', canvas);
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error('Failed to get 2D context from canvas!');
-                return;
-            }
+            this.isUpdatingDailyChart = true;
 
-            if (this.dailyChart) {
-                console.log('Destroying existing daily chart');
-                try {
-                    this.dailyChart.destroy();
-                    this.dailyChart = null;
-                } catch (error) {
-                    console.error('Error destroying daily chart:', error);
-                    this.dailyChart = null;
+            // Wrap in try-catch to handle any errors
+            try {
+                const canvas = document.getElementById('dailyChart');
+                if (!canvas) {
+                    console.error('Daily chart canvas not found!');
+                    return;
                 }
-            }
 
-            // Handle empty data
-            if (!data.labels || data.labels.length === 0) {
-                console.log('Daily chart has no data, showing empty state');
-                try {
+                console.log('Canvas element found:', canvas);
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Failed to get 2D context from canvas!');
+                    return;
+                }
+
+                // Destroy existing chart if it exists
+                if (this.dailyChart) {
+                    console.log('Destroying existing daily chart');
+                    try {
+                        this.dailyChart.destroy();
+                        this.dailyChart = null;
+                    } catch (error) {
+                        console.error('Error destroying daily chart:', error);
+                        this.dailyChart = null;
+                    }
+                }
+
+                // Handle empty data
+                if (!data.labels || data.labels.length === 0) {
+                    console.log('Daily chart has no data, showing empty state');
                     this.dailyChart = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -653,14 +665,10 @@ function dashboard() {
                         }
                     });
                     console.log('Empty daily chart created successfully');
-                } catch (error) {
-                    console.error('Error creating empty daily chart:', error);
+                    return;
                 }
-                return;
-            }
 
-            console.log('Creating daily chart with', data.labels.length, 'data points');
-            try {
+                console.log('Creating daily chart with', data.labels.length, 'data points');
                 this.dailyChart = new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -695,7 +703,9 @@ function dashboard() {
                 });
                 console.log('Daily chart created successfully');
             } catch (error) {
-                console.error('Error creating daily chart:', error);
+                console.error('Error in updateDailyChart:', error);
+            } finally {
+                this.isUpdatingDailyChart = false;
             }
         },
 
