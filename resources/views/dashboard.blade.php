@@ -16,14 +16,14 @@
                 <!-- Date Range Selector -->
                 <div class="flex flex-wrap gap-3 items-center">
                     <div>
-                        <label class="text-sm text-blue-100 block mb-1">Start Date</label>
+                        <label class="text-sm text-white block mb-1">Start Date</label>
                         <input type="date" x-model="selectedDate" @change="onStartDateChange"
-                            class="px-3 py-2 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                            class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
                     </div>
                     <div>
-                        <label class="text-sm text-blue-100 block mb-1">End Date</label>
+                        <label class="text-sm text-white block mb-1">End Date</label>
                         <input type="date" x-model="endDate" @change="onEndDateChange"
-                            class="px-3 py-2 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                            class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
                     </div>
                     <button @click="fetchNvrData" :disabled="nvrLoading"
                         class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 rounded-lg transition mt-5">
@@ -73,7 +73,7 @@
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm">Today's Visits</p>
+                        <p class="text-gray-500 text-sm">Total Visits</p>
                         <p class="text-3xl font-bold text-gray-800" x-text="todayStats.total">0</p>
                     </div>
                     <div class="text-3xl">👥</div>
@@ -89,7 +89,7 @@
                     <div class="text-3xl">⏱️</div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-500 text-sm">Avg Visit Duration</p>
@@ -105,7 +105,7 @@
                         <p class="text-gray-500 text-sm">This Week</p>
                         <p class="text-3xl font-bold text-gray-800" x-text="weeklyTotal">0</p>
                     </div>
-                    <div class="text-3xl">📊</div>
+                    <div class="text-3xl">📅</div>
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-800">Hourly Traffic</h2>
-                    <span class="text-sm text-gray-500" x-text="formatDate(selectedDate)"></span>
+                    <span class="text-sm text-gray-500" x-text="formatDate(selectedDate) + ' — ' + formatDate(endDate)"></span>
                 </div>
                 <div class="relative h-80">
                     <canvas id="hourlyChart"></canvas>
@@ -127,7 +127,7 @@
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-800">Visit Duration Categories</h2>
-                    <span class="text-sm text-gray-500" x-text="formatDate(selectedDate)"></span>
+                    <span class="text-sm text-gray-500" x-text="formatDate(selectedDate) + ' — ' + formatDate(endDate)"></span>
                 </div>
                 <div class="relative h-80">
                     <canvas id="genderChart"></canvas>
@@ -216,13 +216,22 @@ function dashboard() {
                 this.loadGenderStats(),
                 this.loadSummaryStats(), // Load summary stats
                 this.loadDailyData(), // This will use the current period
+                this.loadWeeklyData(),
+                this.loadWeeklyCard(),
             ]);
         },
 
         async onEndDateChange() {
             console.log('End date changed to:', this.endDate);
             // Auto-refresh data that depends on date range
-            await this.loadDailyData();
+            await Promise.all([
+                this.loadDailyData(),
+                this.loadHourlyData(),
+                this.loadGenderStats(),
+                this.loadSummaryStats(),
+                this.loadWeeklyData(),
+                this.loadWeeklyCard(),
+            ]);
         },
 
         setPeriod(days) {
@@ -307,6 +316,7 @@ function dashboard() {
                     this.loadHourlyData(),
                     this.loadDailyData(),
                     this.loadWeeklyData(),
+                    this.loadWeeklyCard(),
                     this.loadPeakHour(),
                     this.loadGenderStats(),
                     this.loadSummaryStats(),
@@ -319,7 +329,7 @@ function dashboard() {
 
         async loadHourlyData() {
             try {
-                const response = await fetch(`/api/recordings/hourly?date=${this.selectedDate}`);
+                const response = await fetch(`/api/recordings/hourly?start_date=${this.selectedDate}&end_date=${this.endDate}`);
                 const data = await response.json();
                 console.log('Hourly data loaded:', data);
                 this.updateHourlyChart(data);
@@ -357,7 +367,7 @@ function dashboard() {
 
         async loadSummaryStats() {
             try {
-                const response = await fetch(`/api/recordings/stats?start_date=${this.selectedDate}&end_date=${this.selectedDate}`);
+                const response = await fetch(`/api/recordings/stats?start_date=${this.selectedDate}&end_date=${this.endDate}`);
                 const data = await response.json();
                 console.log('Summary stats loaded:', data);
                 this.todayStats = {
@@ -403,18 +413,29 @@ function dashboard() {
         },
 
         async loadWeeklyData() {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(start.getDate() - 90);
-            console.log('Loading weekly data from', start.toISOString().split('T')[0], 'to', end.toISOString().split('T')[0]);
+            console.log('Loading weekly data from', this.selectedDate, 'to', this.endDate);
             try {
-                const response = await fetch(`/api/recordings/weekly?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`);
+                const response = await fetch(`/api/recordings/weekly?start_date=${this.selectedDate}&end_date=${this.endDate}`);
                 const data = await response.json();
                 console.log('Weekly data loaded:', data);
-                this.weeklyTotal = data.recording_count?.reduce((a, b) => a + b, 0) || 0;
                 this.updateWeeklyChart(data);
             } catch (error) {
                 console.error('Error loading weekly data:', error);
+            }
+        },
+
+        async loadWeeklyCard() {
+            const end = new Date(this.endDate);
+            const weekStart = new Date(end);
+            weekStart.setDate(end.getDate() - 6);
+            console.log('Loading weekly card from', weekStart.toISOString().split('T')[0], 'to', this.endDate);
+            try {
+                const response = await fetch(`/api/recordings/weekly?start_date=${weekStart.toISOString().split('T')[0]}&end_date=${this.endDate}`);
+                const data = await response.json();
+                console.log('Weekly card loaded:', data);
+                this.weeklyTotal = data.recording_count?.reduce((a, b) => a + b, 0) || 0;
+            } catch (error) {
+                console.error('Error loading weekly card:', error);
             }
         },
 

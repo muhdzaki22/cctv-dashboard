@@ -116,12 +116,15 @@ class NvrRecordingController extends Controller
     public function hourly(Request $request)
     {
         $request->validate([
-            'date' => 'required|date',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date',
         ]);
 
         try {
-            $date = $request->input('date');
-            $data = NvrRecording::getHourlyRecordings($date);
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date', $startDate);
+
+            $data = NvrRecording::getHourlyRecordingsForRange($startDate, $endDate);
 
             return response()->json([
                 'labels' => $data->pluck('recording_hour')->map(fn($h) => sprintf('%02d:00', $h)),

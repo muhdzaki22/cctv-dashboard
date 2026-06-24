@@ -70,6 +70,22 @@ class NvrRecording extends Model
     }
 
     /**
+     * Get hourly recording counts aggregated across a date range
+     */
+    public static function getHourlyRecordingsForRange($startDate, $endDate)
+    {
+        return self::dateRange($startDate, $endDate)
+            ->selectRaw('
+                recording_hour,
+                COUNT(*) as recording_count,
+                SUM(duration) as total_duration
+            ')
+            ->groupBy('recording_hour')
+            ->orderBy('recording_hour')
+            ->get();
+    }
+
+    /**
      * Get daily recording counts for a date range
      */
     public static function getDailyRecordings($startDate, $endDate = null)
