@@ -116,26 +116,36 @@ class NvrAuthService
     /**
      * Start recording search process
      */
-    public function startRecordingSearch(string $accessToken): int
+    public function startRecordingSearch(string $accessToken, int $maxRetries = 3): int
     {
-        try {
-            $decodedToken = urldecode($accessToken);
+        $decodedToken = urldecode($accessToken);
 
-            $response = Http::withOptions([
-                'verify' => false,
-            ])->withHeaders([
-                'Authorization' => "Bearer {$decodedToken}",
-            ])->get("{$this->baseUrl}/openapi/record/search/free_process");
+        for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+            try {
+                $response = Http::withOptions([
+                    'verify' => false,
+                ])->withHeaders([
+                    'Authorization' => "Bearer {$decodedToken}",
+                ])->get("{$this->baseUrl}/openapi/record/search/free_process");
 
-            if ($response->failed()) {
-                throw new \Exception("Failed to start recording search: " . $response->body());
+                if ($response->failed()) {
+                    throw new \Exception("Failed to start recording search: " . $response->body());
+                }
+
+                $data = $response->json();
+                if (isset($data['process'])) {
+                    return (int) $data['process'];
+                }
+            } catch (\Exception $e) {
+                if ($attempt === $maxRetries - 1) {
+                    throw new \Exception("Error starting recording search: " . $e->getMessage());
+                }
             }
 
-            $data = $response->json();
-            return $data['process'] ?? throw new \Exception("No process ID in response");
-        } catch (\Exception $e) {
-            throw new \Exception("Error starting recording search: " . $e->getMessage());
+            usleep(500000);
         }
+
+        throw new \Exception("Error starting recording search: No process ID in response after {$maxRetries} attempts");
     }
 
     /**
