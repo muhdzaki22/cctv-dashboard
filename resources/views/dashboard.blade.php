@@ -7,34 +7,45 @@
     <!-- Header -->
     <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
         <div class="container mx-auto px-4 py-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
                     <h1 class="text-3xl font-bold">CCTV Foot Traffic Dashboard</h1>
                     <p class="text-blue-100 mt-1">Store entrance monitoring and analytics</p>
                 </div>
 
-                <!-- Date Range Selector -->
-                <div class="flex flex-wrap gap-3 items-center">
-                    <div>
-                        <label class="text-sm text-white block mb-1">Start Date</label>
-                        <input type="date" x-model="selectedDate" @change="onStartDateChange"
-                            class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                <div class="flex flex-col items-end gap-3">
+                    <div class="flex items-center gap-4">
+                        <span class="text-white text-sm">{{ Auth::user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm transition">
+                                Logout
+                            </button>
+                        </form>
                     </div>
-                    <div>
-                        <label class="text-sm text-white block mb-1">End Date</label>
-                        <input type="date" x-model="endDate" @change="onEndDateChange"
-                            class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+
+                    <div class="flex flex-wrap gap-3 items-end justify-end">
+                        <div>
+                            <label class="text-sm text-white block mb-1">Start Date</label>
+                            <input type="date" x-model="selectedDate" @change="onStartDateChange"
+                                class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-sm text-white block mb-1">End Date</label>
+                            <input type="date" x-model="endDate" @change="onEndDateChange"
+                                class="px-3 py-2 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                        </div>
+                        <button @click="fetchNvrData" :disabled="nvrLoading"
+                            class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 rounded-lg transition">
+                            <span x-show="!nvrLoading">🔄 Fetch NVR Data</span>
+                            <span x-show="nvrLoading">Fetching...</span>
+                        </button>
+                        <button @click="refreshAll" :disabled="loading"
+                            class="px-4 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg transition">
+                            <span x-show="!loading">Refresh</span>
+                            <span x-show="loading">Loading...</span>
+                        </button>
                     </div>
-                    <button @click="fetchNvrData" :disabled="nvrLoading"
-                        class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 rounded-lg transition mt-5">
-                        <span x-show="!nvrLoading">🔄 Fetch NVR Data</span>
-                        <span x-show="nvrLoading">Fetching...</span>
-                    </button>
-                    <button @click="refreshAll" :disabled="loading"
-                        class="px-4 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg transition mt-5">
-                        <span x-show="!loading">Refresh</span>
-                        <span x-show="loading">Loading...</span>
-                    </button>
                 </div>
             </div>
         </div>
@@ -167,7 +178,6 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
 <script>
 function dashboard() {
     return {
