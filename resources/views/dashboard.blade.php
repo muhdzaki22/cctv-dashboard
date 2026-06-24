@@ -63,7 +63,7 @@
                             </div>
                         </template>
                     </div>
-                    <div class="text-6xl opacity-20">🚶</div>
+                    <div class="text-6xl">🚶</div>
                 </div>
             </div>
         </div>
@@ -76,7 +76,7 @@
                         <p class="text-gray-500 text-sm">Today's Visits</p>
                         <p class="text-3xl font-bold text-gray-800" x-text="todayStats.total">0</p>
                     </div>
-                    <div class="text-3xl opacity-20">👥</div>
+                    <div class="text-3xl">👥</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500">
@@ -86,7 +86,7 @@
                         <p class="text-3xl font-bold text-gray-800" x-text="Math.round(todayStats.total_duration / 60)">0</p>
                         <p class="text-xs text-gray-400">minutes</p>
                     </div>
-                    <div class="text-3xl opacity-20">⏱️</div>
+                    <div class="text-3xl">⏱️</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
@@ -96,7 +96,7 @@
                         <p class="text-3xl font-bold text-gray-800" x-text="todayStats.avg_duration">0</p>
                         <p class="text-xs text-gray-400">seconds</p>
                     </div>
-                    <div class="text-3xl opacity-20">📊</div>
+                    <div class="text-3xl">📊</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-amber-500">
@@ -105,7 +105,7 @@
                         <p class="text-gray-500 text-sm">This Week</p>
                         <p class="text-3xl font-bold text-gray-800" x-text="weeklyTotal">0</p>
                     </div>
-                    <div class="text-3xl opacity-20">📊</div>
+                    <div class="text-3xl">📊</div>
                 </div>
             </div>
         </div>
