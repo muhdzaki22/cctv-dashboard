@@ -477,7 +477,7 @@ function dashboard() {
                             borderRadius: 4
                         }]
                     },
-                    options: {
+                    options: { animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -510,7 +510,7 @@ function dashboard() {
                         borderRadius: 4
                     }]
                 },
-                options: {
+                options: { animation: false,
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
@@ -554,7 +554,7 @@ function dashboard() {
                             borderWidth: 2
                         }]
                     },
-                    options: {
+                    options: { animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -593,7 +593,7 @@ function dashboard() {
                         borderWidth: 2
                     }]
                 },
-                options: {
+                options: { animation: false,
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
@@ -671,7 +671,7 @@ function dashboard() {
                                 pointRadius: 4
                             }]
                         },
-                        options: {
+                        options: { animation: false,
                             responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
@@ -713,7 +713,7 @@ function dashboard() {
                             pointRadius: 4
                         }]
                     },
-                    options: {
+                    options: { animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -762,7 +762,7 @@ function dashboard() {
                             borderRadius: 4
                         }]
                     },
-                    options: {
+                    options: { animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -796,7 +796,7 @@ function dashboard() {
                         borderRadius: 4
                     }]
                 },
-                options: {
+                options: { animation: false,
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
