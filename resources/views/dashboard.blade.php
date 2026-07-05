@@ -456,13 +456,15 @@ function dashboard() {
                 console.error('Hourly chart canvas not found');
                 return;
             }
-            const ctx = canvas.getContext('2d');
-            if (this.hourlyChart) this.hourlyChart.destroy();
+            if (this.hourlyChart) {
+                try { this.hourlyChart.destroy(); } catch (e) {}
+                this.hourlyChart = null;
+            }
 
             // Handle empty data
             if (!data.labels || data.labels.length === 0) {
                 console.log('Hourly chart has no data, showing empty state');
-                this.hourlyChart = new Chart(ctx, {
+                this.hourlyChart = new Chart(canvas, {
                     type: 'bar',
                     data: {
                         labels: ['No Data'],
@@ -495,7 +497,7 @@ function dashboard() {
             }
 
             console.log('Creating hourly chart with', data.labels.length, 'data points');
-            this.hourlyChart = new Chart(ctx, {
+            this.hourlyChart = new Chart(canvas, {
                 type: 'bar',
                 data: {
                     labels: data.labels,
@@ -528,7 +530,6 @@ function dashboard() {
                 console.error('Duration chart canvas not found');
                 return;
             }
-            const ctx = canvas.getContext('2d');
             if (this.genderChart) {
                 try {
                     this.genderChart.destroy();
@@ -542,7 +543,7 @@ function dashboard() {
             // Handle empty data
             if (!data.data || data.data.every(val => val === 0)) {
                 console.log('Duration chart has no data, showing empty state');
-                this.genderChart = new Chart(ctx, {
+                this.genderChart = new Chart(canvas, {
                     type: 'doughnut',
                     data: {
                         labels: ['No Data'],
@@ -573,7 +574,7 @@ function dashboard() {
             }
 
             console.log('Creating duration chart with categories:', data.labels);
-            this.genderChart = new Chart(ctx, {
+            this.genderChart = new Chart(canvas, {
                 type: 'doughnut',
                 data: {
                     labels: data.labels,
@@ -637,11 +638,6 @@ function dashboard() {
                 }
 
                 console.log('Canvas element found:', canvas);
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.error('Failed to get 2D context from canvas!');
-                    return;
-                }
 
                 // Destroy existing chart if it exists
                 if (this.dailyChart) {
@@ -658,7 +654,7 @@ function dashboard() {
                 // Handle empty data
                 if (!data.labels || data.labels.length === 0) {
                     console.log('Daily chart has no data, showing empty state');
-                    this.dailyChart = new Chart(ctx, {
+                    this.dailyChart = new Chart(canvas, {
                         type: 'line',
                         data: {
                             labels: ['No Data'],
@@ -700,7 +696,7 @@ function dashboard() {
                 }
 
                 console.log('Creating daily chart with', data.labels.length, 'data points');
-                this.dailyChart = new Chart(ctx, {
+                this.dailyChart = new Chart(canvas, {
                     type: 'line',
                     data: {
                         labels: data.labels,
@@ -747,13 +743,15 @@ function dashboard() {
                 console.error('Weekly chart canvas not found!');
                 return;
             }
-            const ctx = canvas.getContext('2d');
-            if (this.weeklyChart) this.weeklyChart.destroy();
+            if (this.weeklyChart) {
+                try { this.weeklyChart.destroy(); } catch (e) {}
+                this.weeklyChart = null;
+            }
 
             // Handle empty data
             if (!data.labels || data.labels.length === 0) {
                 console.log('Weekly chart has no data, showing empty state');
-                this.weeklyChart = new Chart(ctx, {
+                this.weeklyChart = new Chart(canvas, {
                     type: 'bar',
                     data: {
                         labels: ['No Data'],
@@ -787,7 +785,7 @@ function dashboard() {
             }
 
             console.log('Creating weekly chart with', data.labels.length, 'data points');
-            this.weeklyChart = new Chart(ctx, {
+            this.weeklyChart = new Chart(canvas, {
                 type: 'bar',
                 data: {
                     labels: data.labels,
