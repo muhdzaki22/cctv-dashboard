@@ -273,7 +273,7 @@ function dashboard() {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
-                    body: JSON.stringify({ date: this.selectedDate })
+                    body: JSON.stringify({ date: this.endDate })
                 });
 
                 console.log('Response status:', response.status);
